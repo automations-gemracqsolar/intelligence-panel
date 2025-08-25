@@ -1,6 +1,6 @@
 {
   "name": "racqsolar-estimator-intelligence-panel",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Dynamic Sales Intelligence Panel for RACQ Solar Estimator",
   "main": "src/wwElement.vue",
   "scripts": {
