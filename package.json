@@ -1,0 +1,27 @@
+{
+  "name": "racqsolar-estimator-intelligence-panel",
+  "version": "1.0.0",
+  "description": "Dynamic Sales Intelligence Panel - Provides real-time, contextual sales guidance for RACQ Solar Estimator",
+  "main": "src/wwElement.vue",
+  "scripts": {
+    "build": "weweb build",
+    "serve": "weweb serve"
+  },
+  "author": "RACQ Solar",
+  "license": "Private",
+  "type": "ww-element",
+  "wewebPublic": "public",
+  "keywords": [
+    "weweb",
+    "component",
+    "racq",
+    "solar",
+    "sales",
+    "intelligence",
+    "ai"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "@weweb/cli": "latest"
+  }
+}
