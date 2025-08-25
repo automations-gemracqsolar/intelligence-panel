@@ -9,12 +9,17 @@
     }"
   >
     <!-- Panel Header - Always visible -->
-    <div class="panel-header">
+    <div class="panel-header" @click="toggleExpanded">
       <div class="header-content">
-        <span class="panel-icon">💡</span>
+        <div class="panel-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L12 3M12 21L12 22M4.22 4.22L4.93 4.93M19.07 19.07L19.78 19.78M2 12L3 12M21 12L22 12M4.22 19.78L4.93 19.07M19.07 4.93L19.78 4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </div>
         <h3 class="panel-title">Sales Intelligence</h3>
         <button 
-          @click="toggleExpanded" 
+          @click.stop="toggleExpanded" 
           class="expand-toggle"
         >
           <svg :class="{ 'rotated': isExpanded }" width="16" height="16" viewBox="0 0 16 16">
@@ -189,6 +194,30 @@ export default {
               'Feed-in tariff optimization opportunities',
               'Minimal weather disruption'
             ]
+          },
+          'South East Queensland': {
+            message: 'Southeast Queensland enjoys premium solar conditions',
+            stats: [
+              { label: 'Peak Sun Hours', value: '5.2' },
+              { label: 'Generation Boost', value: '+15%' }
+            ],
+            points: [
+              '5.2 peak sun hours daily average',
+              '15% better generation than southern states',
+              'Consistent performance year-round'
+            ]
+          },
+          'Queensland': {
+            message: 'Queensland offers exceptional solar potential',
+            stats: [
+              { label: 'Peak Sun Hours', value: '5.3' },
+              { label: 'Solar Advantage', value: 'Top 3 Globally' }
+            ],
+            points: [
+              'Among world's best solar resources',
+              'Government rebates available',
+              'Year-round generation capacity'
+            ]
           }
         },
         billRanges: {
@@ -251,21 +280,35 @@ export default {
   },
   
   computed: {
-    // WeWeb property accessors
+    // WeWeb property accessors - Now binding to individual form fields for real-time updates
     region() {
-      return this.content.region || ''
+      // Try multiple possible sources for region data
+      return this.content.region || 
+             this.content.state || 
+             this.content.customerRegion || 
+             ''
     },
     monthlyBill() {
-      return this.content.monthlyBill || ''
+      // Try multiple possible sources for bill data
+      return this.content.monthlyBill || 
+             this.content.billRange || 
+             this.content.electricityBill || 
+             ''
     },
     systemType() {
-      return this.content.systemType || ''
+      return this.content.systemType || 
+             this.content.selectedSystemType || 
+             ''
     },
     energyUsage() {
-      return this.content.energyUsage || ''
+      return this.content.energyUsage || 
+             this.content.dailyUsage || 
+             ''
     },
     futureNeeds() {
-      return this.content.futureNeeds || ''
+      return this.content.futureNeeds || 
+             this.content.futurePlans || 
+             ''
     },
     selectedPackage() {
       return this.content.selectedPackage || {}
@@ -349,12 +392,39 @@ export default {
     },
     
     applyRegionIntelligence() {
-      const regionData = this.intelligenceRules.regions[this.region]
+      // Try to match region with various formats
+      const regionData = this.findRegionMatch(this.region)
       if (regionData) {
         this.primaryMessage = regionData.message
         this.keyStats = [...(this.keyStats || []), ...(regionData.stats || [])]
         this.talkingPoints = [...(this.talkingPoints || []), ...(regionData.points || [])]
       }
+    },
+    
+    findRegionMatch(region) {
+      if (!region) return null
+      
+      // Direct match
+      if (this.intelligenceRules.regions[region]) {
+        return this.intelligenceRules.regions[region]
+      }
+      
+      // Try case-insensitive match
+      const regionLower = region.toLowerCase()
+      for (const [key, value] of Object.entries(this.intelligenceRules.regions)) {
+        if (key.toLowerCase() === regionLower) {
+          return value
+        }
+      }
+      
+      // Try partial match
+      for (const [key, value] of Object.entries(this.intelligenceRules.regions)) {
+        if (regionLower.includes(key.toLowerCase()) || key.toLowerCase().includes(regionLower)) {
+          return value
+        }
+      }
+      
+      return null
     },
     
     applyBillIntelligence() {
@@ -406,13 +476,21 @@ export default {
     },
     
     findBillRange(bill) {
+      if (!bill) return null
       const billRanges = this.intelligenceRules.billRanges
+      // Direct match
+      if (billRanges[bill]) {
+        return billRanges[bill]
+      }
+      // Try to match by parsing the bill value
+      // This handles cases where bill might be a different format
       return billRanges[bill] || null
     },
     
     getComboKey() {
       const billCategory = this.monthlyBill?.includes('100') ? 'low' : 'high'
-      return `${this.systemType}_${billCategory}`
+      const systemKey = this.systemType?.replace('_system', '').replace('-', '_')
+      return `${systemKey}_${billCategory}`
     },
     
     resetIntelligence() {
@@ -595,22 +673,21 @@ export default {
 </script>
 
 <style scoped>
-/* Container Styles */
+/* Container Styles - NO BORDER */
 .intelligence-panel-container {
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.98);
+  border: none; /* Removed border as requested */
+  border-radius: 8px;
   padding: 0;
-  margin: 20px 0;
+  margin: 0; /* Removed margin to hug container */
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  min-height: 60px; /* Ensure minimum height */
-  width: 100%; /* Take full width of container */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  min-height: 60px;
+  width: 100%;
 }
 
 .intelligence-panel-container.has-insights {
-  border-color: #FFE600;
-  box-shadow: 0 4px 12px rgba(255, 230, 0, 0.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 .intelligence-panel-container.is-visible {
@@ -619,16 +696,20 @@ export default {
   opacity: 1 !important;
 }
 
-/* Header Styles */
+/* Header Styles - MATCHING SALES COACH BUTTON */
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #e0e0e0;
-  background: linear-gradient(90deg, #FFE600 0%, #ffed4e 100%);
-  border-radius: 12px 12px 0 0;
-  cursor: pointer; /* Make header clickable */
+  background: #6BB6FF; /* Same as Sales Coach button */
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.panel-header:hover {
+  background: #5CA5EE; /* Same hover as Sales Coach button */
 }
 
 .header-content {
@@ -637,15 +718,26 @@ export default {
   gap: 10px;
 }
 
+/* Icon instead of emoji */
 .panel-icon {
-  font-size: 20px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-icon svg {
+  width: 20px;
+  height: 20px;
+  color: #003478; /* Dark blue to match Sales Coach */
 }
 
 .panel-title {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #003478;
+  color: #003478; /* Dark blue text like Sales Coach */
 }
 
 .expand-toggle {
@@ -710,7 +802,7 @@ export default {
   height: 40px;
   margin: 0 auto 10px;
   border: 3px solid #e0e0e0;
-  border-top-color: #FFE600;
+  border-top-color: #6BB6FF;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -724,6 +816,7 @@ export default {
   padding: 20px;
   max-height: 600px;
   overflow-y: auto;
+  background: white;
 }
 
 /* Primary Message */
@@ -771,7 +864,7 @@ export default {
 }
 
 .stat-item {
-  background: white;
+  background: #f8f9fa;
   padding: 12px;
   border-radius: 8px;
   text-align: center;
@@ -808,7 +901,7 @@ export default {
 }
 
 .point-bullet {
-  color: #FFE600;
+  color: #92C467; /* Brand green */
   font-weight: bold;
   flex-shrink: 0;
 }
@@ -888,16 +981,20 @@ export default {
   font-size: 14px;
 }
 
-/* Minimized Indicator */
+/* Minimized Indicator - BRAND GREEN */
 .minimized-indicator {
   padding: 12px 20px;
   text-align: center;
   font-size: 13px;
-  color: #666;
+  color: #92C467; /* Brand green */
   background: #f8f9fa;
-  border-top: 1px solid #e0e0e0;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 8px 8px;
   cursor: pointer;
+  font-weight: 500;
+}
+
+.minimized-indicator:hover {
+  background: #f0f1f2;
 }
 
 /* Transitions */
@@ -912,15 +1009,13 @@ export default {
   transform: translateY(-10px);
 }
 
-/* Desktop - Fixed to right side */
+/* Desktop - Positioned to hug form */
 @media (min-width: 1024px) {
   .intelligence-panel-container {
-    position: fixed;
-    right: 20px;
-    top: 100px;
-    width: 400px;
+    /* Remove fixed positioning to let it flow with form */
+    position: relative;
+    width: 100%;
     max-width: 100%;
-    z-index: 999;
   }
 }
 
@@ -937,10 +1032,6 @@ export default {
   .action-btn {
     width: 100%;
     justify-content: center;
-  }
-  
-  .intelligence-panel-container {
-    margin: 10px 0;
   }
   
   .panel-header {
