@@ -7,17 +7,10 @@ export default {
     customStylePropertiesOrder: [],
     customSettingsPropertiesOrder: [
       "region",
-      "state",
-      "customerRegion",
-      "monthlyBill",
-      "billRange",
-      "electricityBill",
+      "monthlyBill", 
       "systemType",
-      "selectedSystemType",
       "energyUsage",
-      "dailyUsage",
       "futureNeeds",
-      "futurePlans",
       "selectedPackage",
       "intelligenceRules",
       "aiEnabled",
@@ -26,7 +19,6 @@ export default {
   },
   
   properties: {
-    // Multiple region options for flexibility
     region: {
       label: {
         en: "Customer Region"
@@ -35,24 +27,6 @@ export default {
       bindable: true,
       defaultValue: ""
     },
-    state: {
-      label: {
-        en: "State (Alternative)"
-      },
-      type: "Text",
-      bindable: true,
-      defaultValue: ""
-    },
-    customerRegion: {
-      label: {
-        en: "Customer Region (Alternative)"
-      },
-      type: "Text",
-      bindable: true,
-      defaultValue: ""
-    },
-    
-    // Multiple bill options for flexibility
     monthlyBill: {
       label: {
         en: "Monthly Bill Range"
@@ -61,24 +35,6 @@ export default {
       bindable: true,
       defaultValue: ""
     },
-    billRange: {
-      label: {
-        en: "Bill Range (Alternative)"
-      },
-      type: "Text",
-      bindable: true,
-      defaultValue: ""
-    },
-    electricityBill: {
-      label: {
-        en: "Electricity Bill (Alternative)"
-      },
-      type: "Text",
-      bindable: true,
-      defaultValue: ""
-    },
-    
-    // System type options
     systemType: {
       label: {
         en: "System Type"
@@ -87,16 +43,6 @@ export default {
       bindable: true,
       defaultValue: ""
     },
-    selectedSystemType: {
-      label: {
-        en: "Selected System Type (Alternative)"
-      },
-      type: "Text",
-      bindable: true,
-      defaultValue: ""
-    },
-    
-    // Energy usage options
     energyUsage: {
       label: {
         en: "Energy Usage"
@@ -105,16 +51,6 @@ export default {
       bindable: true,
       defaultValue: ""
     },
-    dailyUsage: {
-      label: {
-        en: "Daily Usage (Alternative)"
-      },
-      type: "Text",
-      bindable: true,
-      defaultValue: ""
-    },
-    
-    // Future needs options
     futureNeeds: {
       label: {
         en: "Future Energy Needs"
@@ -123,15 +59,6 @@ export default {
       bindable: true,
       defaultValue: ""
     },
-    futurePlans: {
-      label: {
-        en: "Future Plans (Alternative)"
-      },
-      type: "Text",
-      bindable: true,
-      defaultValue: ""
-    },
-    
     selectedPackage: {
       label: {
         en: "Selected Package"
