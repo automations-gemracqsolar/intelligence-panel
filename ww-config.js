@@ -6,6 +6,7 @@ export default {
     icon: "lightbulb",
     customStylePropertiesOrder: [],
     customSettingsPropertiesOrder: [
+      "positionMode",
       "region",
       "monthlyBill", 
       "systemType",
@@ -19,6 +20,21 @@ export default {
   },
   
   properties: {
+    positionMode: {
+      label: {
+        en: "Position Mode"
+      },
+      type: "Select",
+      options: {
+        options: [
+          { value: "fixed-right", label: "Fixed Right (Default)" },
+          { value: "inline", label: "Inline with Content" },
+          { value: "bottom", label: "Fixed Bottom" }
+        ]
+      },
+      bindable: true,
+      defaultValue: "fixed-right"
+    },
     region: {
       label: {
         en: "Customer Region"

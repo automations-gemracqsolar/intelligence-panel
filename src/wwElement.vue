@@ -1,104 +1,129 @@
 <template>
   <div 
-    class="intelligence-panel-container"
-    :class="{ 
-      'has-insights': hasInsights,
-      'is-loading': isLoading,
-      'is-expanded': isExpanded
-    }"
+    class="intelligence-panel-wrapper"
+    :class="[
+      `position-${positionMode}`,
+      {
+        'is-mobile': isMobile,
+        'is-tablet': isTablet,
+        'is-desktop': isDesktop
+      }
+    ]"
   >
-    <!-- Panel Header -->
-    <div class="panel-header" @click="toggleExpanded">
-      <div class="header-content">
-        <div class="panel-icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L12 3M12 21L12 22M4.22 4.22L4.93 4.93M19.07 19.07L19.78 19.78M2 12L3 12M21 12L22 12M4.22 19.78L4.93 19.07M19.07 4.93L19.78 4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
-          </svg>
+    <div 
+      class="intelligence-panel-container"
+      :class="{ 
+        'has-insights': hasInsights,
+        'is-loading': isLoading,
+        'is-expanded': isExpanded,
+        'is-minimized': !isExpanded
+      }"
+    >
+      <!-- Panel Header -->
+      <div class="panel-header" @click="toggleExpanded">
+        <div class="header-content">
+          <div class="panel-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L12 3M12 21L12 22M4.22 4.22L4.93 4.93M19.07 19.07L19.78 19.78M2 12L3 12M21 12L22 12M4.22 19.78L4.93 19.07M19.07 4.93L19.78 4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </div>
+          <h3 class="panel-title">Sales Intelligence</h3>
+          <!-- Mobile close button -->
+          <button v-if="isMobile && isExpanded" class="mobile-close" @click.stop="toggleExpanded">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
-        <h3 class="panel-title">Sales Intelligence</h3>
+        <div class="confidence-badge" v-if="confidence > 0 && hasInsights && !isMobile">
+          <span class="confidence-value">{{ confidence }}%</span>
+          <span class="confidence-label">match</span>
+        </div>
       </div>
-      <div class="confidence-badge" v-if="confidence > 0 && hasInsights">
-        <span class="confidence-value">{{ confidence }}%</span>
-        <span class="confidence-label">match</span>
-      </div>
-    </div>
 
-    <!-- Content Area -->
-    <transition name="panel-fade">
-      <div v-if="isExpanded" class="panel-body">
-        <!-- Loading State -->
-        <div v-if="isLoading" class="panel-loading">
-          <div class="loading-pulse"></div>
-          <span>Analyzing customer profile...</span>
-        </div>
-
-        <!-- Empty State -->
-        <div v-else-if="!hasInsights" class="panel-empty">
-          <p>Start filling out the form to see real-time sales intelligence</p>
-        </div>
-
-        <!-- Main Content -->
-        <div v-else class="panel-content">
-          <!-- Primary Message -->
-          <div class="primary-message" v-if="primaryMessage">
-            <p>{{ primaryMessage }}</p>
+      <!-- Content Area -->
+      <transition name="panel-fade">
+        <div v-if="isExpanded" class="panel-body">
+          <!-- Loading State -->
+          <div v-if="isLoading" class="panel-loading">
+            <div class="loading-pulse"></div>
+            <span>Analyzing customer profile...</span>
           </div>
 
-          <!-- Key Statistics -->
-          <div class="insight-section key-stats" v-if="keyStats && keyStats.length">
-            <h4>Key Numbers</h4>
-            <div class="stats-grid">
-              <div v-for="stat in keyStats" :key="stat.label" class="stat-item">
-                <div class="stat-value">{{ stat.value }}</div>
-                <div class="stat-label">{{ stat.label }}</div>
+          <!-- Empty State -->
+          <div v-else-if="!hasInsights" class="panel-empty">
+            <p>Start filling out the form to see real-time sales intelligence</p>
+          </div>
+
+          <!-- Main Content -->
+          <div v-else class="panel-content">
+            <!-- Mobile confidence badge -->
+            <div class="confidence-badge mobile-badge" v-if="confidence > 0 && hasInsights && isMobile">
+              <span class="confidence-value">{{ confidence }}%</span>
+              <span class="confidence-label">match</span>
+            </div>
+
+            <!-- Primary Message -->
+            <div class="primary-message" v-if="primaryMessage">
+              <p>{{ primaryMessage }}</p>
+            </div>
+
+            <!-- Key Statistics -->
+            <div class="insight-section key-stats" v-if="keyStats && keyStats.length">
+              <h4>Key Numbers</h4>
+              <div class="stats-grid">
+                <div v-for="stat in keyStats" :key="stat.label" class="stat-item">
+                  <div class="stat-value">{{ stat.value }}</div>
+                  <div class="stat-label">{{ stat.label }}</div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Talking Points -->
-          <div class="insight-section talking-points" v-if="talkingPoints && talkingPoints.length">
-            <h4>Talking Points</h4>
-            <ul class="points-list">
-              <li v-for="(point, index) in talkingPoints" :key="index">
-                {{ point }}
-              </li>
-            </ul>
-          </div>
-
-          <!-- Objection Handler -->
-          <div class="insight-section objection-handler" v-if="objectionHandler">
-            <h4>If They Hesitate</h4>
-            <div class="objection-content">
-              <p>{{ objectionHandler }}</p>
+            <!-- Talking Points -->
+            <div class="insight-section talking-points" v-if="talkingPoints && talkingPoints.length">
+              <h4>Talking Points</h4>
+              <ul class="points-list">
+                <li v-for="(point, index) in talkingPoints" :key="index">
+                  {{ point }}
+                </li>
+              </ul>
             </div>
-          </div>
 
-          <!-- Urgency Message -->
-          <div class="insight-section urgency-message" v-if="urgencyMessage">
-            <h4>Create Urgency</h4>
-            <div class="urgency-content">
-              <p>{{ urgencyMessage }}</p>
+            <!-- Objection Handler -->
+            <div class="insight-section objection-handler" v-if="objectionHandler">
+              <h4>If They Hesitate</h4>
+              <div class="objection-content">
+                <p>{{ objectionHandler }}</p>
+              </div>
             </div>
-          </div>
 
-          <!-- Action Buttons -->
-          <div class="panel-actions">
-            <button @click="copyInsights" class="action-btn copy-btn">
-              Copy All
-            </button>
-            <button @click="refreshInsights" class="action-btn refresh-btn">
-              Refresh
-            </button>
+            <!-- Urgency Message -->
+            <div class="insight-section urgency-message" v-if="urgencyMessage">
+              <h4>Create Urgency</h4>
+              <div class="urgency-content">
+                <p>{{ urgencyMessage }}</p>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="panel-actions">
+              <button @click="copyInsights" class="action-btn copy-btn">
+                Copy All
+              </button>
+              <button @click="refreshInsights" class="action-btn refresh-btn">
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
 
-    <!-- Minimized Indicator -->
-    <div v-if="!isExpanded" class="minimized-indicator" @click="toggleExpanded">
-      <span v-if="hasInsights">{{ insightCount }} insights available</span>
-      <span v-else>Click to expand</span>
+      <!-- Minimized Indicator -->
+      <div v-if="!isExpanded && positionMode !== 'inline'" class="minimized-indicator" @click="toggleExpanded">
+        <span v-if="hasInsights">{{ insightCount }} insights available</span>
+        <span v-else>Click to expand</span>
+      </div>
     </div>
   </div>
 </template>
@@ -124,6 +149,7 @@ export default {
       objectionHandler: '',
       urgencyMessage: '',
       confidence: 0,
+      windowWidth: window.innerWidth,
       
       // Default intelligence rules
       defaultIntelligenceRules: {
@@ -211,6 +237,9 @@ export default {
   },
   
   computed: {
+    positionMode() {
+      return this.content.positionMode || 'fixed-right'
+    },
     region() {
       return this.content.region || ''
     },
@@ -231,6 +260,16 @@ export default {
     },
     intelligenceRules() {
       return this.content.intelligenceRules || this.defaultIntelligenceRules
+    },
+    
+    isMobile() {
+      return this.windowWidth < 768
+    },
+    isTablet() {
+      return this.windowWidth >= 768 && this.windowWidth < 1024
+    },
+    isDesktop() {
+      return this.windowWidth >= 1024
     },
     
     hasInsights() {
@@ -263,9 +302,24 @@ export default {
 
   mounted() {
     this.updateIntelligence()
+    this.handleResize()
+    window.addEventListener('resize', this.handleResize)
+    
+    // Start minimized on mobile
+    if (this.isMobile) {
+      this.isExpanded = false
+    }
+  },
+  
+  beforeDestroy() {
+    window.removeEventListener('resize', this.handleResize)
   },
 
   methods: {
+    handleResize() {
+      this.windowWidth = window.innerWidth
+    },
+    
     updateIntelligence() {
       this.resetIntelligence()
       
@@ -412,6 +466,57 @@ export default {
 </script>
 
 <style scoped>
+/* Wrapper for positioning */
+.intelligence-panel-wrapper {
+  z-index: 1000;
+}
+
+/* Fixed Right Position (Desktop) */
+.intelligence-panel-wrapper.position-fixed-right.is-desktop {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 380px;
+  max-height: calc(100vh - 100px);
+}
+
+/* Fixed Right Position (Tablet - Collapsible Overlay) */
+.intelligence-panel-wrapper.position-fixed-right.is-tablet {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 340px;
+  max-height: calc(100vh - 100px);
+}
+
+/* Fixed Right Position (Mobile - Bottom Sheet) */
+.intelligence-panel-wrapper.position-fixed-right.is-mobile {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-height: 70vh;
+  z-index: 1100;
+}
+
+/* Bottom Position */
+.intelligence-panel-wrapper.position-bottom {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 600px;
+}
+
+/* Inline Position */
+.intelligence-panel-wrapper.position-inline {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+}
+
 /* Container */
 .intelligence-panel-container {
   background: rgba(255, 255, 255, 0.98);
@@ -419,6 +524,22 @@ export default {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   margin: 0;
   width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Mobile bottom sheet styles */
+.position-fixed-right.is-mobile .intelligence-panel-container {
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Minimized state for fixed positions */
+.position-fixed-right .intelligence-panel-container.is-minimized,
+.position-bottom .intelligence-panel-container.is-minimized {
+  height: auto;
 }
 
 .intelligence-panel-container.has-insights {
@@ -435,6 +556,13 @@ export default {
   border-radius: 8px 8px 0 0;
   cursor: pointer;
   transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+
+/* Mobile header adjustments */
+.is-mobile .panel-header {
+  border-radius: 20px 20px 0 0;
+  padding: 20px;
 }
 
 .panel-header:hover {
@@ -445,6 +573,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1;
 }
 
 .panel-icon {
@@ -468,6 +597,26 @@ export default {
   color: #003478;
 }
 
+/* Mobile close button */
+.mobile-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.mobile-close svg {
+  width: 18px;
+  height: 18px;
+  color: #003478;
+}
+
 /* Confidence Badge */
 .confidence-badge {
   display: flex;
@@ -477,6 +626,11 @@ export default {
   padding: 4px 12px;
   border-radius: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.confidence-badge.mobile-badge {
+  margin-bottom: 16px;
+  align-self: flex-start;
 }
 
 .confidence-value {
@@ -495,6 +649,31 @@ export default {
 .panel-body {
   padding: 20px;
   background: white;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Scrollbar styling for fixed panel */
+.position-fixed-right .panel-body::-webkit-scrollbar,
+.position-bottom .panel-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.position-fixed-right .panel-body::-webkit-scrollbar-track,
+.position-bottom .panel-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.position-fixed-right .panel-body::-webkit-scrollbar-thumb,
+.position-bottom .panel-body::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.position-fixed-right .panel-body::-webkit-scrollbar-thumb:hover,
+.position-bottom .panel-body::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 /* Empty State */
@@ -699,8 +878,15 @@ export default {
   padding-bottom: 0;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* Responsive - Tablet specific */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .intelligence-panel-wrapper.position-fixed-right {
+    right: 10px;
+  }
+}
+
+/* Responsive - Mobile specific */
+@media (max-width: 767px) {
   .stats-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -711,6 +897,22 @@ export default {
   
   .action-btn {
     width: 100%;
+  }
+  
+  /* Mobile bottom sheet animation */
+  .position-fixed-right.is-mobile .panel-fade-enter-active,
+  .position-fixed-right.is-mobile .panel-fade-leave-active {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  
+  .position-fixed-right.is-mobile .panel-fade-enter-from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  
+  .position-fixed-right.is-mobile .panel-fade-leave-to {
+    transform: translateY(100%);
+    opacity: 0;
   }
 }
 </style>
