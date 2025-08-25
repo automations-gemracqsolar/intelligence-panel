@@ -4,25 +4,25 @@
     :class="{ 
       'has-insights': hasInsights,
       'is-loading': isLoading,
-      'is-expanded': isExpanded 
+      'is-expanded': isExpanded,
+      'is-visible': isVisible
     }"
   >
-    <!-- Panel Header -->
-    <div class="panel-header" v-if="hasInsights || isLoading">
+    <!-- Panel Header - Always visible -->
+    <div class="panel-header">
       <div class="header-content">
         <span class="panel-icon">💡</span>
         <h3 class="panel-title">Sales Intelligence</h3>
         <button 
           @click="toggleExpanded" 
           class="expand-toggle"
-          v-if="hasInsights"
         >
           <svg :class="{ 'rotated': isExpanded }" width="16" height="16" viewBox="0 0 16 16">
             <path d="M8 10.5L3 5.5h10l-5 5z" fill="currentColor"/>
           </svg>
         </button>
       </div>
-      <div class="confidence-badge" v-if="confidence > 0">
+      <div class="confidence-badge" v-if="confidence > 0 && hasInsights">
         <span class="confidence-value">{{ confidence }}%</span>
         <span class="confidence-label">match</span>
       </div>
@@ -34,9 +34,14 @@
       <span>Analyzing customer profile...</span>
     </div>
 
+    <!-- Empty State -->
+    <div v-if="!hasInsights && !isLoading && isExpanded" class="panel-empty">
+      <p>Start filling out the form to see real-time sales intelligence</p>
+    </div>
+
     <!-- Main Content -->
     <transition name="panel-fade">
-      <div v-if="hasInsights && !isLoading" class="panel-content" :class="{ 'expanded': isExpanded }">
+      <div v-if="hasInsights && !isLoading && isExpanded" class="panel-content">
         
         <!-- Primary Message -->
         <div class="primary-message" v-if="primaryMessage">
@@ -105,7 +110,7 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="panel-actions" v-if="isExpanded">
+        <div class="panel-actions">
           <button @click="copyInsights" class="action-btn copy-btn">
             <span>📋</span>
             Copy All
@@ -123,8 +128,9 @@
     </transition>
 
     <!-- Minimized State Indicator -->
-    <div v-if="hasInsights && !isExpanded" class="minimized-indicator">
-      <span>{{ insightCount }} insights available</span>
+    <div v-if="!isExpanded" class="minimized-indicator">
+      <span v-if="hasInsights">{{ insightCount }} insights available</span>
+      <span v-else>Click to expand</span>
     </div>
   </div>
 </template>
@@ -142,9 +148,10 @@ export default {
   
   data() {
     return {
-      // Core state
+      // Core state - START EXPANDED BY DEFAULT
       isLoading: false,
-      isExpanded: false,
+      isExpanded: true, // Changed from false to true
+      isVisible: true, // Added visibility flag
       aiInsightsLoaded: false,
       
       // Intelligence content
@@ -307,6 +314,9 @@ export default {
   mounted() {
     this.updateIntelligence()
     this.setupEventListeners()
+    // Ensure panel is visible on mount
+    this.isVisible = true
+    this.isExpanded = true
   },
 
   methods: {
@@ -594,11 +604,19 @@ export default {
   margin: 20px 0;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  min-height: 60px; /* Ensure minimum height */
+  width: 100%; /* Take full width of container */
 }
 
 .intelligence-panel-container.has-insights {
   border-color: #FFE600;
   box-shadow: 0 4px 12px rgba(255, 230, 0, 0.15);
+}
+
+.intelligence-panel-container.is-visible {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Header Styles */
@@ -610,6 +628,7 @@ export default {
   border-bottom: 1px solid #e0e0e0;
   background: linear-gradient(90deg, #FFE600 0%, #ffed4e 100%);
   border-radius: 12px 12px 0 0;
+  cursor: pointer; /* Make header clickable */
 }
 
 .header-content {
@@ -671,6 +690,14 @@ export default {
   text-transform: uppercase;
 }
 
+/* Empty State */
+.panel-empty {
+  padding: 30px;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
 /* Loading State */
 .panel-loading {
   padding: 30px;
@@ -697,10 +724,6 @@ export default {
   padding: 20px;
   max-height: 600px;
   overflow-y: auto;
-}
-
-.panel-content.expanded {
-  max-height: none;
 }
 
 /* Primary Message */
@@ -874,6 +897,7 @@ export default {
   background: #f8f9fa;
   border-top: 1px solid #e0e0e0;
   border-radius: 0 0 12px 12px;
+  cursor: pointer;
 }
 
 /* Transitions */
@@ -888,7 +912,19 @@ export default {
   transform: translateY(-10px);
 }
 
-/* Responsive */
+/* Desktop - Fixed to right side */
+@media (min-width: 1024px) {
+  .intelligence-panel-container {
+    position: fixed;
+    right: 20px;
+    top: 100px;
+    width: 400px;
+    max-width: 100%;
+    z-index: 999;
+  }
+}
+
+/* Tablet - Responsive width */
 @media (max-width: 768px) {
   .stats-grid {
     grid-template-columns: 1fr 1fr;
@@ -916,7 +952,7 @@ export default {
   }
 }
 
-/* Mobile-specific styles for bottom positioning */
+/* Mobile - Bottom sheet style */
 @media (max-width: 480px) {
   .intelligence-panel-container {
     position: fixed;
