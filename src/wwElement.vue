@@ -1,0 +1,944 @@
+<template>
+  <div 
+    class="intelligence-panel-container"
+    :class="{ 
+      'has-insights': hasInsights,
+      'is-loading': isLoading,
+      'is-expanded': isExpanded 
+    }"
+  >
+    <!-- Panel Header -->
+    <div class="panel-header" v-if="hasInsights || isLoading">
+      <div class="header-content">
+        <span class="panel-icon">💡</span>
+        <h3 class="panel-title">Sales Intelligence</h3>
+        <button 
+          @click="toggleExpanded" 
+          class="expand-toggle"
+          v-if="hasInsights"
+        >
+          <svg :class="{ 'rotated': isExpanded }" width="16" height="16" viewBox="0 0 16 16">
+            <path d="M8 10.5L3 5.5h10l-5 5z" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+      <div class="confidence-badge" v-if="confidence > 0">
+        <span class="confidence-value">{{ confidence }}%</span>
+        <span class="confidence-label">match</span>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="isLoading" class="panel-loading">
+      <div class="loading-pulse"></div>
+      <span>Analyzing customer profile...</span>
+    </div>
+
+    <!-- Main Content -->
+    <transition name="panel-fade">
+      <div v-if="hasInsights && !isLoading" class="panel-content" :class="{ 'expanded': isExpanded }">
+        
+        <!-- Primary Message -->
+        <div class="primary-message" v-if="primaryMessage">
+          <p>{{ primaryMessage }}</p>
+        </div>
+
+        <!-- Key Statistics -->
+        <div class="insight-section key-stats" v-if="keyStats && keyStats.length">
+          <h4>
+            <span class="section-icon">📊</span>
+            Key Numbers
+          </h4>
+          <div class="stats-grid">
+            <div v-for="stat in keyStats" :key="stat.label" class="stat-item">
+              <div class="stat-value">{{ stat.value }}</div>
+              <div class="stat-label">{{ stat.label }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Talking Points -->
+        <div class="insight-section talking-points" v-if="talkingPoints && talkingPoints.length">
+          <h4>
+            <span class="section-icon">💬</span>
+            Talking Points
+          </h4>
+          <ul class="points-list">
+            <li v-for="(point, index) in talkingPoints" :key="index">
+              <span class="point-bullet">▸</span>
+              {{ point }}
+            </li>
+          </ul>
+        </div>
+
+        <!-- Objection Handler -->
+        <div class="insight-section objection-handler" v-if="objectionHandler">
+          <h4>
+            <span class="section-icon">🛡️</span>
+            If They Hesitate
+          </h4>
+          <div class="objection-content">
+            <p>{{ objectionHandler }}</p>
+          </div>
+        </div>
+
+        <!-- Urgency Message -->
+        <div class="insight-section urgency-message" v-if="urgencyMessage">
+          <h4>
+            <span class="section-icon">⚡</span>
+            Create Urgency
+          </h4>
+          <div class="urgency-content">
+            <p>{{ urgencyMessage }}</p>
+          </div>
+        </div>
+
+        <!-- Competitive Intel -->
+        <div class="insight-section competitive-intel" v-if="competitiveIntel">
+          <h4>
+            <span class="section-icon">🎯</span>
+            Competitive Edge
+          </h4>
+          <div class="competitive-content">
+            <p>{{ competitiveIntel }}</p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="panel-actions" v-if="isExpanded">
+          <button @click="copyInsights" class="action-btn copy-btn">
+            <span>📋</span>
+            Copy All
+          </button>
+          <button @click="refreshInsights" class="action-btn refresh-btn">
+            <span>🔄</span>
+            Refresh
+          </button>
+          <button @click="requestAIInsights" class="action-btn ai-btn" v-if="!aiInsightsLoaded && aiEnabled">
+            <span>✨</span>
+            AI Insights
+          </button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Minimized State Indicator -->
+    <div v-if="hasInsights && !isExpanded" class="minimized-indicator">
+      <span>{{ insightCount }} insights available</span>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'IntelligencePanel',
+  
+  props: {
+    content: {
+      type: Object,
+      required: true
+    }
+  },
+  
+  data() {
+    return {
+      // Core state
+      isLoading: false,
+      isExpanded: false,
+      aiInsightsLoaded: false,
+      
+      // Intelligence content
+      primaryMessage: '',
+      keyStats: [],
+      talkingPoints: [],
+      objectionHandler: '',
+      urgencyMessage: '',
+      competitiveIntel: '',
+      confidence: 0,
+      
+      // Default intelligence rules
+      defaultIntelligenceRules: {
+        regions: {
+          'SEQ': {
+            message: 'Southeast Queensland enjoys premium solar conditions',
+            stats: [
+              { label: 'Peak Sun Hours', value: '5.2' },
+              { label: 'Generation Boost', value: '+15%' }
+            ],
+            points: [
+              '5.2 peak sun hours daily average',
+              '15% better generation than southern states',
+              'Consistent performance year-round'
+            ]
+          },
+          'Brisbane': {
+            message: 'Brisbane offers excellent solar potential',
+            stats: [
+              { label: 'Peak Sun Hours', value: '5.1' },
+              { label: 'Payback Period', value: '3-4 years' }
+            ],
+            points: [
+              'Strong solar irradiance levels',
+              'Feed-in tariff optimization opportunities',
+              'Minimal weather disruption'
+            ]
+          }
+        },
+        billRanges: {
+          '$0-$100': {
+            message: 'Even modest bills benefit significantly from solar',
+            objection: 'System pays for itself in 4-5 years, then pure savings',
+            points: [
+              'Typical 40-60% bill reduction',
+              'Protection from rising energy costs',
+              'Increase property value'
+            ]
+          },
+          '$100-$200': {
+            message: 'The sweet spot for solar ROI',
+            objection: 'Less than current monthly bill for complete daytime energy freedom',
+            urgency: 'Electricity prices rising 8% annually - act now to lock in savings',
+            points: [
+              'Typical payback: 3-4 years',
+              'Monthly savings: $100-150',
+              '25-year savings: $30,000-40,000'
+            ]
+          },
+          '$200-$300': {
+            message: 'High usage perfect for maximum solar benefit',
+            objection: 'Large system justified by high consumption',
+            urgency: 'STC rebates decreasing - save $1,500+ by acting now',
+            points: [
+              'Potential 70-90% bill reduction',
+              'Fast payback under 3 years',
+              'Consider battery for 24/7 savings'
+            ]
+          },
+          '$300+': {
+            message: 'Prime candidate for full energy independence',
+            objection: 'System cost less than 2 years of current bills',
+            urgency: 'Battery rebates available now, reducing next quarter',
+            points: [
+              'Potential for $0 electricity bills',
+              'Maximum system size recommended',
+              'Battery storage highly beneficial'
+            ]
+          }
+        },
+        systemCombos: {
+          'pv_only_low': {
+            competitive: 'Solar-only systems offer the fastest payback and lowest complexity'
+          },
+          'pv_only_high': {
+            competitive: 'High usage makes solar extremely cost-effective with rapid ROI'
+          },
+          'pv_battery_low': {
+            competitive: 'Battery provides energy security and future-proofing for modest users'
+          },
+          'pv_battery_high': {
+            competitive: 'Full energy independence possible - eliminate bills entirely'
+          }
+        }
+      }
+    }
+  },
+  
+  computed: {
+    // WeWeb property accessors
+    region() {
+      return this.content.region || ''
+    },
+    monthlyBill() {
+      return this.content.monthlyBill || ''
+    },
+    systemType() {
+      return this.content.systemType || ''
+    },
+    energyUsage() {
+      return this.content.energyUsage || ''
+    },
+    futureNeeds() {
+      return this.content.futureNeeds || ''
+    },
+    selectedPackage() {
+      return this.content.selectedPackage || {}
+    },
+    intelligenceRules() {
+      return this.content.intelligenceRules || this.defaultIntelligenceRules
+    },
+    aiEnabled() {
+      return this.content.aiEnabled || false
+    },
+    apiEndpoint() {
+      return this.content.apiEndpoint || '/api/sales-intelligence'
+    },
+    
+    // Computed properties
+    hasInsights() {
+      return this.primaryMessage || 
+             this.keyStats.length > 0 || 
+             this.talkingPoints.length > 0 ||
+             this.objectionHandler ||
+             this.urgencyMessage ||
+             this.competitiveIntel
+    },
+    
+    insightCount() {
+      let count = 0
+      if (this.primaryMessage) count++
+      if (this.keyStats.length > 0) count++
+      if (this.talkingPoints.length > 0) count++
+      if (this.objectionHandler) count++
+      if (this.urgencyMessage) count++
+      if (this.competitiveIntel) count++
+      return count
+    }
+  },
+  
+  watch: {
+    region: 'updateIntelligence',
+    monthlyBill: 'updateIntelligence',
+    systemType: 'updateIntelligence',
+    energyUsage: 'updateIntelligence',
+    futureNeeds: 'updateIntelligence',
+    selectedPackage: 'updateIntelligence'
+  },
+
+  mounted() {
+    this.updateIntelligence()
+    this.setupEventListeners()
+  },
+
+  methods: {
+    updateIntelligence() {
+      // Reset state
+      this.resetIntelligence()
+      
+      // Build intelligence based on available data
+      if (this.region) {
+        this.applyRegionIntelligence()
+      }
+      
+      if (this.monthlyBill) {
+        this.applyBillIntelligence()
+      }
+      
+      if (this.systemType && this.monthlyBill) {
+        this.applyComboIntelligence()
+      }
+      
+      if (this.selectedPackage && Object.keys(this.selectedPackage).length > 0) {
+        this.applyPackageIntelligence()
+      }
+      
+      // Calculate confidence
+      this.calculateConfidence()
+      
+      // Emit event for WeWeb
+      this.emitIntelligenceUpdate()
+    },
+    
+    applyRegionIntelligence() {
+      const regionData = this.intelligenceRules.regions[this.region]
+      if (regionData) {
+        this.primaryMessage = regionData.message
+        this.keyStats = [...(this.keyStats || []), ...(regionData.stats || [])]
+        this.talkingPoints = [...(this.talkingPoints || []), ...(regionData.points || [])]
+      }
+    },
+    
+    applyBillIntelligence() {
+      const billData = this.findBillRange(this.monthlyBill)
+      if (billData) {
+        if (!this.primaryMessage) {
+          this.primaryMessage = billData.message
+        }
+        if (billData.objection) {
+          this.objectionHandler = billData.objection
+        }
+        if (billData.urgency) {
+          this.urgencyMessage = billData.urgency
+        }
+        if (billData.points) {
+          this.talkingPoints = [...(this.talkingPoints || []), ...billData.points]
+        }
+      }
+    },
+    
+    applyComboIntelligence() {
+      const comboKey = this.getComboKey()
+      const comboData = this.intelligenceRules.systemCombos[comboKey]
+      if (comboData && comboData.competitive) {
+        this.competitiveIntel = comboData.competitive
+      }
+    },
+    
+    applyPackageIntelligence() {
+      if (this.selectedPackage) {
+        const packageStats = []
+        if (this.selectedPackage.size) {
+          packageStats.push({ label: 'System Size', value: this.selectedPackage.size + 'kW' })
+        }
+        if (this.selectedPackage.monthlySavings) {
+          packageStats.push({ label: 'Monthly Savings', value: '$' + this.selectedPackage.monthlySavings })
+        }
+        this.keyStats = [...this.keyStats, ...packageStats]
+      }
+    },
+    
+    calculateConfidence() {
+      let score = 0
+      if (this.region) score += 25
+      if (this.monthlyBill) score += 25
+      if (this.systemType) score += 25
+      if (this.selectedPackage && Object.keys(this.selectedPackage).length > 0) score += 25
+      this.confidence = score
+    },
+    
+    findBillRange(bill) {
+      const billRanges = this.intelligenceRules.billRanges
+      return billRanges[bill] || null
+    },
+    
+    getComboKey() {
+      const billCategory = this.monthlyBill?.includes('100') ? 'low' : 'high'
+      return `${this.systemType}_${billCategory}`
+    },
+    
+    resetIntelligence() {
+      this.primaryMessage = ''
+      this.keyStats = []
+      this.talkingPoints = []
+      this.objectionHandler = ''
+      this.urgencyMessage = ''
+      this.competitiveIntel = ''
+      this.confidence = 0
+    },
+    
+    toggleExpanded() {
+      this.isExpanded = !this.isExpanded
+      
+      // Emit WeWeb event
+      this.$emit('trigger-event', {
+        name: 'panel:expanded',
+        event: {
+          isExpanded: this.isExpanded
+        }
+      })
+    },
+    
+    async copyInsights() {
+      const text = this.formatInsightsAsText()
+      try {
+        await navigator.clipboard.writeText(text)
+        
+        // Emit WeWeb event
+        this.$emit('trigger-event', {
+          name: 'insights:copied',
+          event: {
+            content: text
+          }
+        })
+        
+        // Show feedback (you might want to emit a toast event)
+        console.log('Insights copied to clipboard!')
+      } catch (err) {
+        console.error('Failed to copy insights:', err)
+      }
+    },
+    
+    refreshInsights() {
+      this.updateIntelligence()
+    },
+    
+    async requestAIInsights() {
+      if (!this.aiEnabled) return
+      
+      this.isLoading = true
+      
+      try {
+        const formData = {
+          region: this.region,
+          monthlyBill: this.monthlyBill,
+          systemType: this.systemType,
+          energyUsage: this.energyUsage,
+          futureNeeds: this.futureNeeds,
+          selectedPackage: this.selectedPackage
+        }
+        
+        // Emit WeWeb event for AI request
+        this.$emit('trigger-event', {
+          name: 'ai:requested',
+          event: {
+            formData: formData
+          }
+        })
+        
+        const response = await fetch(this.apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        })
+        
+        if (response.ok) {
+          const aiInsights = await response.json()
+          this.mergeAIInsights(aiInsights)
+          this.aiInsightsLoaded = true
+        }
+      } catch (error) {
+        console.error('Failed to fetch AI insights:', error)
+      } finally {
+        this.isLoading = false
+      }
+    },
+    
+    mergeAIInsights(aiInsights) {
+      if (aiInsights.primaryMessage) {
+        this.primaryMessage = aiInsights.primaryMessage
+      }
+      if (aiInsights.talkingPoints) {
+        this.talkingPoints = [...this.talkingPoints, ...aiInsights.talkingPoints]
+      }
+      if (aiInsights.competitiveIntel) {
+        this.competitiveIntel = aiInsights.competitiveIntel
+      }
+      // Merge other AI insights as needed
+    },
+    
+    formatInsightsAsText() {
+      let text = 'Sales Intelligence Summary\n'
+      text += '========================\n\n'
+      
+      if (this.primaryMessage) {
+        text += `Primary Message: ${this.primaryMessage}\n\n`
+      }
+      
+      if (this.keyStats.length > 0) {
+        text += 'Key Statistics:\n'
+        this.keyStats.forEach(stat => {
+          text += `• ${stat.label}: ${stat.value}\n`
+        })
+        text += '\n'
+      }
+      
+      if (this.talkingPoints.length > 0) {
+        text += 'Talking Points:\n'
+        this.talkingPoints.forEach(point => {
+          text += `• ${point}\n`
+        })
+        text += '\n'
+      }
+      
+      if (this.objectionHandler) {
+        text += `Objection Handler: ${this.objectionHandler}\n\n`
+      }
+      
+      if (this.urgencyMessage) {
+        text += `Urgency Message: ${this.urgencyMessage}\n\n`
+      }
+      
+      if (this.competitiveIntel) {
+        text += `Competitive Intel: ${this.competitiveIntel}\n\n`
+      }
+      
+      return text
+    },
+    
+    setupEventListeners() {
+      // Listen for external updates if needed
+      window.addEventListener('intelligence-update', this.handleExternalUpdate)
+    },
+    
+    handleExternalUpdate(event) {
+      if (event.detail) {
+        // Update with external data
+        Object.assign(this, event.detail)
+      }
+    },
+    
+    emitIntelligenceUpdate() {
+      // Emit WeWeb event
+      this.$emit('trigger-event', {
+        name: 'intelligence:updated',
+        event: {
+          hasInsights: this.hasInsights,
+          confidence: this.confidence,
+          insights: {
+            primary: this.primaryMessage,
+            stats: this.keyStats,
+            points: this.talkingPoints,
+            objection: this.objectionHandler,
+            urgency: this.urgencyMessage,
+            competitive: this.competitiveIntel
+          }
+        }
+      })
+    }
+  },
+  
+  beforeUnmount() {
+    window.removeEventListener('intelligence-update', this.handleExternalUpdate)
+  }
+}
+</script>
+
+<style scoped>
+/* Container Styles */
+.intelligence-panel-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 0;
+  margin: 20px 0;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.intelligence-panel-container.has-insights {
+  border-color: #FFE600;
+  box-shadow: 0 4px 12px rgba(255, 230, 0, 0.15);
+}
+
+/* Header Styles */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background: linear-gradient(90deg, #FFE600 0%, #ffed4e 100%);
+  border-radius: 12px 12px 0 0;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-icon {
+  font-size: 20px;
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #003478;
+}
+
+.expand-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  color: #003478;
+  transition: transform 0.3s ease;
+}
+
+.expand-toggle svg {
+  transition: transform 0.3s ease;
+}
+
+.expand-toggle svg.rotated {
+  transform: rotate(180deg);
+}
+
+/* Confidence Badge */
+.confidence-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.confidence-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #003478;
+}
+
+.confidence-label {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+}
+
+/* Loading State */
+.panel-loading {
+  padding: 30px;
+  text-align: center;
+  color: #666;
+}
+
+.loading-pulse {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 10px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #FFE600;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Content Styles */
+.panel-content {
+  padding: 20px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.panel-content.expanded {
+  max-height: none;
+}
+
+/* Primary Message */
+.primary-message {
+  background: #f0f7ff;
+  border-left: 4px solid #003478;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.primary-message p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: #003478;
+}
+
+/* Insight Sections */
+.insight-section {
+  margin-bottom: 24px;
+}
+
+.insight-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.section-icon {
+  font-size: 16px;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.stat-item {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #003478;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+}
+
+/* Points List */
+.points-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.points-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.point-bullet {
+  color: #FFE600;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+/* Objection Handler */
+.objection-handler .objection-content {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.objection-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #856404;
+}
+
+/* Urgency Message */
+.urgency-message .urgency-content {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.urgency-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #721c24;
+  font-weight: 500;
+}
+
+/* Competitive Intel */
+.competitive-intel .competitive-content {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.competitive-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #155724;
+}
+
+/* Action Buttons */
+.panel-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid #e0e0e0;
+  background: white;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background: #f8f9fa;
+  border-color: #003478;
+  transform: translateY(-1px);
+}
+
+.action-btn span {
+  font-size: 14px;
+}
+
+/* Minimized Indicator */
+.minimized-indicator {
+  padding: 12px 20px;
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Transitions */
+.panel-fade-enter-active,
+.panel-fade-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.panel-fade-enter-from,
+.panel-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .panel-actions {
+    flex-direction: column;
+  }
+  
+  .action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .intelligence-panel-container {
+    margin: 10px 0;
+  }
+  
+  .panel-header {
+    padding: 12px 16px;
+  }
+  
+  .panel-content {
+    padding: 16px;
+  }
+}
+
+/* Mobile-specific styles for bottom positioning */
+@media (max-width: 480px) {
+  .intelligence-panel-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    border-radius: 12px 12px 0 0;
+    z-index: 1000;
+  }
+  
+  .intelligence-panel-container:not(.is-expanded) {
+    transform: translateY(calc(100% - 60px));
+  }
+  
+  .intelligence-panel-container.is-expanded {
+    transform: translateY(0);
+    max-height: 80vh;
+  }
+  
+  .panel-content {
+    max-height: calc(80vh - 120px);
+  }
+}
+</style>
